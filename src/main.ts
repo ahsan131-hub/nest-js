@@ -1,10 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import {RolesGuard} from "./gaurds/roles.gaurds";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  /*setup gaurd for role, we can also setup gaurd to specific routes by just using @UseGuards(RolesGuard) in controllers*/
+  app.useGlobalGuards(new RolesGuard());
+
+  /* setup swagger for api documentation purposes  */
   const config = new DocumentBuilder()
       .setTitle('Nestjs Learning')
       .setDescription('The nestjs learning API description')

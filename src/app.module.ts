@@ -11,6 +11,7 @@ import {LoggerMiddleware} from "./middlewares/logging,middleware";
   providers: [AppService],
 })
 export class AppModule {
+  // used class based middleware.
   configure(consumer: MiddlewareConsumer) {
     consumer
         .apply(LoggerMiddleware)

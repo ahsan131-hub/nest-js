@@ -4,7 +4,7 @@ import {CreateUserDto} from "./users.dto";
 @Injectable()
 export class UsersService {
     get():string[]{
-        return ["ahsan","alie"]
+        return ["ahsan","ali"]
     }
     create(creatUserDto:CreateUserDto):string{
         console.log("-----service----",creatUserDto)

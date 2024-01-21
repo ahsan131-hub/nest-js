@@ -3,10 +3,9 @@ import { z } from 'zod';
 
 export const createUserSchema = z
     .object({
-        name: z.string(),
-        age: z.number(),
-        phoneNumber: z.string(),
-        email:z.string()
+        firstName: z.string(),
+        lastName: z.string(),
+        isActive: z.boolean(),
     })
     .required();
 

@@ -1,32 +1,50 @@
 import { Injectable } from '@nestjs/common';
-import {CreateUserDto} from "./users.dto";
-import {InjectModel} from "@nestjs/sequelize";
-import {User} from "../models/user.models";
+import { CreateUserDto } from './users.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from '../models/user.models';
+import { Model, UpdateWriteOpResult } from 'mongoose';
+import * as argon2 from 'argon2';
+import { DeleteResult } from 'mongodb';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsersService {
-    constructor(
-        @InjectModel(User)
-        private userModel: typeof User,
-    ) {}
+  constructor(
+    @InjectModel('Users') private readonly userModel: Model<User>,
+    private jwtService: JwtService,
+  ) {}
 
-    async findAll(): Promise<User[]> {
-        return this.userModel.findAll();
-    }
+  async findOne(email: string): Promise<User> {
+    return this.userModel.findOne({
+      email: email,
+    });
+  }
 
-    async create(creatUserDto:CreateUserDto):Promise<string>{
-        await this.userModel.create({
-            firstName:creatUserDto.firstName,
-            lastName:creatUserDto.lastName,
-            isActive:true
-        })
-        return "user is successfully is created!"
-    }
-    update(id:number):string{
-        return "user is successfully is updated!"
-    }
+  async findAll(): Promise<User[]> {
+    return this.userModel.find();
+  }
 
-    remove(id:number):string{
-        return "user is successfully is removed!"
-    }
+  async create(
+    createUserDto: CreateUserDto,
+  ): Promise<UpdateWriteOpResult | any> {
+    const hash = await this.hashData(createUserDto.password);
+    return await this.userModel.create({
+      ...createUserDto,
+      password: hash,
+    });
+  }
+  async update(
+    id: string,
+    updateUserDto: Omit<CreateUserDto, 'password'>,
+  ): Promise<UpdateWriteOpResult> {
+    return this.userModel.updateOne({ _id: id }, updateUserDto);
+  }
+
+  async remove(id: string): Promise<DeleteResult> {
+    return this.userModel.deleteOne({ _id: id });
+  }
+
+  hashData(data: string) {
+    return argon2.hash(data);
+  }
 }

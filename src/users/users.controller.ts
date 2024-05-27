@@ -1,33 +1,105 @@
 import { UsersService } from './users.service';
-import {CreateUserDto, createUserSchema} from "./users.dto";
-import {ZodValidationPipe} from "../validations/zod.validation";
-import {Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UsePipes} from '@nestjs/common';
-import {User} from "../models/user.models";
+import { CreateUserDto, createUserSchema } from './users.dto';
+import { ZodValidationPipe } from '../validations/zod.validation';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
+import { User } from '../models/user.models';
+import { ICreateUser } from './user';
+import { UpdateWriteOpResult } from 'mongoose';
+import { DeleteResult } from 'mongodb';
+import translateMessage from 'src/helpers/translate-message';
+import { AccessTokenGuard } from 'src/gaurds/access-token.gaurds';
 
-@Controller("/users")
+@Controller('/users')
 export class UsersController {
-    constructor(private readonly userService: UsersService) {}
+  constructor(private readonly userService: UsersService) {}
 
-    @Get("/")
-    async get(): Promise<User[]> {
-        return await this.userService.findAll();
+  /*-----------------------GET------------------------ */
+  @Get('/')
+  async get(): Promise<ApiResponse<User[]>> {
+    try {
+      const data: User[] = await this.userService.findAll();
+      return {
+        status: 200,
+        message: translateMessage('messages', 'created', {
+          attr: 'User',
+          action: 'created',
+        }),
+        data: data,
+      };
+    } catch (e) {
+      console.log('Error :', e.message);
+      return {
+        status: 400,
+        message: translateMessage('errors', 'fetchFailed', {
+          attr: 'User',
+        }),
+      };
     }
+  }
 
-    @Post("/")
-    @UsePipes(new ZodValidationPipe(createUserSchema))
-    async create(@Body() createUserDto: CreateUserDto): Promise<string> {
-        return await this.userService.create(createUserDto);
+  /*-----------------------POST------------------------ */
+  @Post('/')
+  @UsePipes(new ZodValidationPipe(createUserSchema))
+  async create(
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<ApiResponse<undefined>> {
+    try {
+      const user: ICreateUser = await this.userService.create(createUserDto);
+      if (user._id) {
+        return {
+          message: 'Successfully created user.',
+          status: 200,
+        };
+      }
+    } catch (e) {
+      console.log('Error :', e.message);
+      return {
+        status: 400,
+        message: `Error :${e.message}`,
+      };
     }
+  }
 
-    @Put(":id")
-    update(@Param("id",new ParseIntPipe()) id:number):string{
-        return this.userService.update(id)
+  /*-----------------------UPDATE------------------------ */
+  @UseGuards(AccessTokenGuard)
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: Omit<CreateUserDto, 'password'>,
+  ): Promise<ApiResponse<undefined>> {
+    try {
+      const user: UpdateWriteOpResult = await this.userService.update(
+        id,
+        updateUserDto,
+      );
+      if (user.acknowledged) {
+        return {
+          status: 200,
+          message: 'Successfully update user',
+        };
+      }
+    } catch (e) {
+      console.log('Error :', e.message);
+      return {
+        status: 400,
+        message: `Error :${e.message}`,
+      };
     }
+  }
 
-    @Delete(":id")
-    remove(@Param("id",new ParseIntPipe()) id:number):string{
-        return this.userService.remove(id)
-    }
-
-
+  /*-----------------------DELETE------------------------ */
+  @Delete(':id')
+  async remove(@Param('id') id: string): Promise<DeleteResult> {
+    return this.userService.remove(id);
+  }
 }
